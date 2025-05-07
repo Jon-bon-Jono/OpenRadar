@@ -10,9 +10,9 @@
 # limitations under the License.
 # ==============================================================================
 
-from mmwave.radars import ti
+from mmwave.dataloader import radars as ti
 from mmwave.tracking import ekf
-from mmwave.tracking import GTRACK_visualize
+from mmwave.tracking import gtrack_visualize as GTRACK_visualize
 import time
 import numpy as np
 
