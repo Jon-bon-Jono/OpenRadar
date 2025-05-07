@@ -1,8 +1,1 @@
-setuptools
-numpy
-pandas
-scipy
-matplotlib
-pyserial
-scikit_learn
-opencv-python
+opencv-python==4.10.0.82

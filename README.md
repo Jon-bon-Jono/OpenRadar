@@ -1,3 +1,14 @@
+# OpenRadar Refactoring to 3D:
+
+```
+conda env create -f environment.yml
+conda activate openradar-3d
+pip install -r requirements.txt
+python setup.py develop
+```
+
+# Original OpenRadar README.md:
+
 # PreSense mmWave Package
 
 [![Version](https://img.shields.io/pypi/v/ipyvolume.svg)](https://pypi.org/project/openradar/)
