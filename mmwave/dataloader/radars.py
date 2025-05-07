@@ -14,6 +14,7 @@ import numpy as np
 import serial
 import struct
 import time
+import pandas as pd
 
 MAGIC_WORD_ARRAY = np.array([2, 1, 4, 3, 6, 5, 8, 7])
 MAGIC_WORD = b'\x02\x01\x04\x03\x06\x05\x08\x07'
@@ -23,6 +24,42 @@ MSG_NOISE_PROFILE = 3
 MSG_AZIMUT_STATIC_HEAT_MAP = 4
 MSG_POINT_CLOUD_2D = 6
 
+class PCCSV:
+    def __init__(self):
+        #TODO: hardcoded for now, change to use args
+        self.pc_paths = [
+            "C:\\Users\\GSBME\\SmartCupStudy\\OpenRadar3D\\OpenRadar\\demo\\people_tracking\\csv_data\\Session-2024-January-16 15-45-37-229419\\points_cloud1.csv",
+            "C:\\Users\\GSBME\\SmartCupStudy\\OpenRadar3D\\OpenRadar\\demo\\people_tracking\\csv_data\\Session-2024-January-16 15-45-37-229419\\points_cloud2.csv"
+        ]
+        self.pc_df = None
+        self.frame_numbers = []
+        self.frame_idx = 0
+        self.current_frame = -1
+
+    def _initialize(self):
+        pc_dfs = []
+        for pcp in self.pc_paths:
+            pc_df = pd.read_csv(pcp)
+            pc_dfs.append(pc_df)
+        self.pc_df = pd.concat(pc_dfs, ignore_index=True)
+        self.frame_numbers = self.pc_df['frame_number'].unique()[9000:9010]
+        self.current_frame = self.frame_numbers[self.frame_idx]
+        print("Initialized PC CSV reader")
+
+
+    def sample(self):
+        self.frame_idx += 1
+        if self.frame_idx >= len(self.frame_numbers):
+            print("End of pc csv file")
+            return None
+        self.current_frame = self.frame_numbers[self.frame_idx]
+        
+        data = self.pc_df[self.pc_df['frame_number'] == self.current_frame]
+        return data
+
+    def close(self):
+        self.pc_df = None
+        return
 
 class TI:
     """Software interface to a TI mmWave EVM for reading TLV format. Based on TI's SDKs
@@ -227,7 +264,7 @@ class TI:
             try:
                 idx = byte_buffer.index(MAGIC_WORD)
             except:
-                return [None] if len(all_data) is 0 else all_data
+                return [None] if len(all_data) == 0 else all_data
 
             header_data, idx = self._parse_header_data(byte_buffer, idx)
             if self.mode == 0:
@@ -321,7 +358,7 @@ class TI:
 
         if self.verbose:
             print('Retrieved data')
-        return [None] if len(all_data) is 0 else all_data
+        return [None] if len(all_data) == 0 else all_data
 
     @staticmethod
     def _unpack(byte_buffer, idx, order='', items=1, form='I'):

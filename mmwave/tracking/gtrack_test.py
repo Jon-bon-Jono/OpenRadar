@@ -60,9 +60,7 @@ def create(config):
                                                                      maxDistanceThre=1., maxVelThre=2.)
     inst.params.variationParams = ekf_utils.gtrack_varParams(lengthStd=np.float32(1. / 3.46),
                                                              widthStd=np.float32(1. / 3.46), dopplerStd=2.)
-    inst.params.sceneryParams = ekf_utils.gtrack_sceneryParams(numBoundaryBoxes=0, numStaticBoxes=0,
-                                                               bound_box=[(0., 0., 0., 0.), (0., 0., 0., 0.)],
-                                                               static_box=[(0., 0., 0., 0.), (0., 0., 0., 0.)])
+    inst.params.sceneryParams = ekf_utils.gtrack_sceneryParams()
 
     # user overwrites default parameters
     if config.advParams is not None:

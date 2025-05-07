@@ -39,7 +39,8 @@ def unit_create(params):
         inst.stateVectorLength = 6
         inst.measurementVectorLength = 3
     else:
-        raise ValueError('not supported, unit_create')
+        print('3D not fully supported, unit_create')
+        #raise ValueError('not supported, unit_create')
 
     inst.dt = params.deltaT
     inst.state = ekf_utils.TrackState().TRACK_STATE_FREE
@@ -172,7 +173,7 @@ def unit_update(handle, point, var, pInd, num):
     cC_inv = np.zeros(shape=(9,), dtype=np.float32)
     K = np.zeros(shape=(18,), dtype=np.float32)  # 6x3
 
-    u_mean = ekf_utils.gtrack_measurementPoint()
+    u_mean = ekf_utils.ekf_dtils.gtrack_measurementPoint()
 
     D = np.zeros(shape=(9,), dtype=np.float32)
     Rm = np.zeros(shape=(9,), dtype=np.float32)
@@ -380,7 +381,7 @@ def unit_event(handle, num):
             if inst.sceneryParams.numStaticBoxes != 0:
                 thre = inst.stateParams.exit2freeThre
                 for numBoxes in range(inst.sceneryParams.numStaticBoxes):
-                    if ekf_utils.isPointInsideBox(inst.S_hat[0], inst.S_hat[1],
+                    if ekf_utils.ekf_dtils.isPointInsideBox(inst.S_hat[0], inst.S_hat[1],
                                                   inst.sceneryParams.boundaryBox[numBoxes]) == 1:
                         if inst.processVariance == 0:
                             thre = inst.stateParams.static2freeThre

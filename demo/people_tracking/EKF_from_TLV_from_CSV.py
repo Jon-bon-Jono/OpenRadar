@@ -10,44 +10,50 @@
 # limitations under the License.
 # ==============================================================================
 
+# Copy of EKF_from_TLV.py which reads point cloud data from a CSV
+
 from mmwave.dataloader import radars as ti
 from mmwave.tracking import ekf
 from mmwave.tracking import gtrack_visualize as GTRACK_visualize
 import time
 import numpy as np
 
+DMODE = '2D'
 
+def unpack_data(data):
+    """Unpack data from the radar"""
+    data_np = {}
+    data_np['range'] = data['range'].to_numpy()
+    data_np['doppler'] = np.ones_like(data['doppler'].to_numpy()) / 10
+    data_np['snr'] = data['snr'].to_numpy()
+    if DMODE == '3D':
+        data_np['azimuth'] = data['azimuth'].to_numpy()
+        data_np['elevation'] = data['elevation'].to_numpy()
+    else:
+        data_np['angle'] = data['azimuth'].to_numpy()
+    
+    return data_np
 
 if __name__ == '__main__':
 
-    tracker = ekf.EKF()
-    radar = ti.TI(cli_loc='COM3', data_loc='COM5', mode=1)
+    tracker = ekf.EKF(mode=DMODE)
+    radar = ti.PCCSV()
     radar._initialize()
 
-    GTRACK_visualize.create()
+    #GTRACK_visualize.create()
     while True:
         time.sleep(.1)
-        try:
-            data = radar.sample()
-            
-            pc = data['pointCloud2D']
-            ranges = pc['range']
-            azimuths = pc['azimuth']
-            dopplers = pc['doppler']
-            dopplers = np.ones_like(dopplers) / 10
-            snrs = pc['snr']
-            print(len(ranges))
-        except:
-            continue
-        
+        data = radar.sample()        
         if data is not None:
-            frame = GTRACK_visualize.get_empty_frame()
+            data_np = unpack_data(data)
+            print(len(data_np['range']))
+            #frame = GTRACK_visualize.get_empty_frame()
             
-            tracker.update_point_cloud(ranges, azimuths, dopplers, snrs)
+            tracker.update_point_cloud(data_np)
             
             targetDescr, tNum = tracker.step()
 
-            try:
+            '''try:
                 frame = GTRACK_visualize.update_frame(targetDescr, int(tNum[0]), frame)
             except:
                 pass
@@ -57,11 +63,15 @@ if __name__ == '__main__':
                 pass
             if not GTRACK_visualize.show(frame, wait=10):
                 break
+            '''
         else:
+            break
+            '''
             frame = GTRACK_visualize.get_empty_frame()
 #            frame = GTRACK_visualize.update_frame(target_desc, 0, frame)
             if not GTRACK_visualize.show(frame, wait=10):
                 break
+            '''
 
-    GTRACK_visualize.destroy()
+    #GTRACK_visualize.destroy()
     radar.close()

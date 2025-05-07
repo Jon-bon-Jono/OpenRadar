@@ -1,3 +1,6 @@
+# radar data
+*.csv
+
 # sphinx build files
 doc/build
 

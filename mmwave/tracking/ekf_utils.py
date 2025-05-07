@@ -1,5 +1,16 @@
 import numpy as np
 
+def init_gtrack_util_imports(mode):
+    global ekf_dtils
+    if mode == '3D':
+        #from . import gtrack_unit_3d as gtrack_unit
+        from . import ekf_utils_3d as ekf_dtils
+    elif mode == '2D':
+        #from . import gtrack_unit_2d as gtrack_unit
+        from . import ekf_utils_2d as ekf_dtils
+    else:
+        raise ValueError("Invalid ekf mode. Choose '2D' or '3D'.")
+
 '''global constants'''
 
 # Maximum supported configurations
@@ -40,26 +51,39 @@ VERBOSE_GATEG1_INFO = 0x00000200  # /*!< Report unitary gating */
 
 '''below is the gtrack alg configuration params'''
 
+class gtrack_sensorPosition():
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
 
-# GTRACK Box Structure
-class gtrack_boundaryBox():
-    def __init__(self, left, right, bottom, top):
-        self.left = left
-        self.right = right
-        self.bottom = bottom
-        self.top = top
+class gtrack_sensorOrientation():
+    def __init__(self, azimTilt, elevTilt):
+        self.azimTilt = azimTilt
+        self.elevTilt = elevTilt
 
+DEFAULT_SENSOR_POSITION = gtrack_sensorPosition(0,0,0)
+DEFAULT_SENSOR_ORIENTATION = gtrack_sensorOrientation(0,0)
 
 # GTRACK Scene Parameters
 class gtrack_sceneryParams():
-    def __init__(self, numBoundaryBoxes=0, numStaticBoxes=0, bound_box=[(0, 0, 0, 0), (0, 0, 0, 0)],
-                 static_box=[(0, 0, 0, 0), (0, 0, 0, 0)]):
+    def __init__(self, sensorPosition=DEFAULT_SENSOR_POSITION, sensorOrientation=DEFAULT_SENSOR_ORIENTATION, 
+                 numBoundaryBoxes=0, numStaticBoxes=0, 
+                 bound_box=None, static_box=None):
+        if bound_box is None:
+            bound_box = ekf_dtils.DEFAULT_BOX
+        if static_box is None:
+            static_box = ekf_dtils.DEFAULT_BOX
+
+        self.sensorPosition = sensorPosition
+        self.sensorOrientation = sensorOrientation
         self.numBoundaryBoxes = numBoundaryBoxes
-        self.boundaryBox = [gtrack_boundaryBox(*bound) for bound, _ in zip(bound_box, range(gtrack_MAX_BOUNDARY_BOXES))]
+        self.boundaryBox = [ekf_dtils.gtrack_boundaryBox(*bound) for bound, _ in zip(bound_box, range(gtrack_MAX_BOUNDARY_BOXES))]
+        self.boundaryBoxSf = [ekf_dtils.boxWorld2Sensor(box, self.sensorPosition, self.sensorOrientation) for box in self.boundaryBox]
         self.numStaticBoxes = numStaticBoxes
-        self.staticBox = [gtrack_boundaryBox(*bound) for bound, _ in zip(static_box, range(gtrack_MAX_STATIC_BOXES))]
-
-
+        self.staticBox = [ekf_dtils.gtrack_boundaryBox(*bound) for bound, _ in zip(static_box, range(gtrack_MAX_STATIC_BOXES))]
+        self.staticBoxSf = [ekf_dtils.boxWorld2Sensor(box, self.sensorPosition, self.sensorOrientation) for box in self.staticBox]
+    
 # GTRACK Gate Limits
 class gtrack_gateLimits():
     def __init__(self, length, width, vel):
@@ -154,23 +178,6 @@ class gtrack_moduleConfig():
         self.maxAcceleration = 12
         self.deltaT = 0.4
         self.advParams = gtrack_advancedParameters()
-
-
-# GTRACK Measurement point
-class gtrack_measurementPoint():
-    def __init__(self):
-        self.range = 0.
-        self.angle = 0.
-        self.doppler = 0.
-        self.snr = 0.
-
-
-# GTRACK Measurement variances
-class gtrack_measurementVariance():
-    def __init__(self):
-        self.rangeVar = 0
-        self.angleVar = 0
-        self.dopplerVar = 0
 
 
 # GTRACK target descriptor
@@ -698,14 +705,6 @@ def gtrack_unrollRadialVelocity(rvMax, rvExp, rvIn):
         factor = int((rvMax - distance) / (2 * rvMax))
         rvOut = np.float32(rvIn - 2 * rvMax * factor)
     return rvOut
-
-
-def isPointInsideBox(x, y, box):
-    if (x > box.left) and (x < box.right) and (y > box.bottom) and (y < box.top):
-        return 1
-    else:
-        return 0
-
 
 # Simplified Gate Construction (no need for SVD) 
 # We build a gate based on a constant volume 

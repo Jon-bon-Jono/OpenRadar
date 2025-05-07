@@ -156,17 +156,20 @@ def step(handle, point, var, m_num, t, t_num, m_index):
     for n in range(m_num):
         inst.bestScore[n] = sys.float_info.max
 
-        x_pos = point[n].range * np.sin(point[n].angle)
-        y_pos = point[n].range * np.cos(point[n].angle)
+        pos = ekf_utils.ekf_dtils.sph2cart(point[n])
+
         if inst.params.sceneryParams.numBoundaryBoxes != 0:
             inst.bestIndex[n] = ekf_utils.gtrack_ID_POINT_BEHIND_THE_WALL
             for numBoxes in range(inst.params.sceneryParams.numBoundaryBoxes):
-                if ekf_utils.isPointInsideBox(x_pos, y_pos, inst.params.sceneryParams.boundaryBox[numBoxes]) == 1:
+                if ekf_utils.ekf_dtils.isPointInsideBox(pos, inst.params.sceneryParams.boundaryBox[numBoxes]) == 1:
                     inst.bestIndex[n] = ekf_utils.gtrack_ID_POINT_NOT_ASSOCIATED
                     break
         else:
             inst.bestIndex[n] = ekf_utils.gtrack_ID_POINT_NOT_ASSOCIATED
 
+    if inst.params.stateVectorType in [ekf_utils.gtrack_STATE_VECTOR_TYPE().gtrack_STATE_VECTORS_3DA, ekf_utils.gtrack_STATE_VECTOR_TYPE().gtrack_STATE_VECTORS_3D]:
+        print("GTRACK not implemented for 3D yet")
+        return
     module_predict(inst)
     module_associate(inst, point, m_num)
     module_allocate(inst, point, m_num)
